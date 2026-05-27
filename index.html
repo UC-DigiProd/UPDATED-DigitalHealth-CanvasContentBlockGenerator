@@ -8,6 +8,10 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f5f7f9; color: #404e65; line-height: 1.6; padding: 2em; max-width: 900px; margin: 0 auto; }
         h1, h2, h3 { color: #027299; margin-bottom: 0.5em; }
         p { margin-top: 0; }
+
+         /* Last updated */
+        .last-updated {
+        font-size: 0.85em; color: #760029; background-color: #f8e6eb; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 15px; border: 1px solid #e1bac5; font-weight: 600; }
         
         /* Tab Navigation */
         .tab-container { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1.5em; border-bottom: 2px solid rgba(0, 159, 194, 0.2); padding-bottom: 1em; }
@@ -50,7 +54,8 @@
 </head>
 <body>
 
-    <h1>[UPDATED Wed 27 May] Digital Health (Micro): Content block converters</h1>
+    <h1>Digital Health (Micro): Content block converters</h1>
+    <div class="last-updated">Last updated: 4:40PM 27 May 2026 by Hollie Herne</div>
     <p>Select a tool below to upgrade legacy HTML, or use the 'Create from scratch' tab to format brand new text.</p>
 
     <div class="tab-container" id="tabs">
@@ -98,7 +103,7 @@
     </div>
 
     <div id="tool-accordion" class="tool-panel">
-        <h2>Collapsible Accordion Converter</h2>
+        <h2>Collapsible accordion converter</h2>
         <label>Paste old HTML code:</label>
         <textarea id="accordion-in" placeholder="Paste old legacy HTML code here..."></textarea>
         <button class="action-btn" onclick="extractToMap('accordion')">Extract & map content</button>
