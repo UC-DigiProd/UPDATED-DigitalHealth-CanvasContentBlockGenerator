@@ -83,8 +83,7 @@
     </div>
 
     <div id="dynamic-inputs">
-        <!-- Inputs injected here -->
-    </div>
+        </div>
 
     <div class="output-section">
         <h2>HTML Output <button class="copy-btn" id="copy-btn">Copy to Clipboard</button></h2>
@@ -95,6 +94,7 @@
 <script>
     // Hybrid Markdown Parser for Flexible Content
     function generateFlexibleHTML(text) {
+        if (!text) return '';
         const blocks = text.split('\n').map(l => l.trim()).filter(l => l !== '');
         let html = '';
         let inList = false;
@@ -155,6 +155,14 @@
         return finalHtml;
     }
 
+    // Ensures links in titles inherit color and strictly strips bold/italic tags
+    function formatTitleHTML(text) {
+        if (!text) return '';
+        // Aggressively strip <strong>, <em>, <b>, <i> tags just in case they were manually typed
+        let cleanedText = text.replace(/<\/?(strong|em|b|i)\b[^>]*>/gi, '');
+        return cleanedText.replace(/<a /gi, '<a style="color: inherit; text-decoration: underline;" ');
+    }
+
     const templates = {
         calloutH4: {
             name: "Callout box (<h4> variation)",
@@ -170,7 +178,7 @@
                 let p3Html = d.p3 ? `\n    <p style="color: #404e65; margin: 0; line-height: 1.6;">${d.p3}</p>` : '';
                 let p1Style = (d.p2 || d.p3) ? "0 0 1em 0" : "0";
                 return `<div style="background-color: rgba(0, 159, 194, 0.08); border: 1px solid rgba(0, 159, 194, 0.2); border-radius: 8px; padding: 1.5em; margin: 1.5em 0;">
-    <h4 style="margin-top: 0; margin-bottom: 0.5em; color: #027299; font-size: 1.25em;">${d.title}</h4>
+    <h4 style="margin-top: 0; margin-bottom: 0.5em; color: #027299; font-size: 1.25em;">${formatTitleHTML(d.title)}</h4>
     <p style="color: #404e65; margin: ${p1Style}; line-height: 1.6;">${d.p1}</p>${p2Html}${p3Html}
 </div>`;
             }
@@ -189,7 +197,7 @@
                 let p3Html = d.p3 ? `\n    <p style="color: #404e65; margin: 0; line-height: 1.6;">${d.p3}</p>` : '';
                 let p1Style = (d.p2 || d.p3) ? "0 0 1em 0" : "0";
                 return `<div style="background-color: rgba(0, 159, 194, 0.08); border: 1px solid rgba(0, 159, 194, 0.2); border-radius: 8px; padding: 1.5em; margin: 1.5em 0;">
-    <h3 style="margin-top: 0; margin-bottom: 0.5em; color: #027299; font-size: 1.25em;">${d.title}</h3>
+    <h3 style="margin-top: 0; margin-bottom: 0.5em; color: #027299; font-size: 1.25em;">${formatTitleHTML(d.title)}</h3>
     <p style="color: #404e65; margin: ${p1Style}; line-height: 1.6;">${d.p1}</p>${p2Html}${p3Html}
 </div>`;
             }
@@ -250,7 +258,7 @@
                 for(let i=1; i<=count; i++) {
                     const contentHtml = generateFlexibleHTML(d[`c${i}`]);
                     itemsHtml += `    <details style="border: 1px solid rgba(64, 78, 101, 0.15); border-left: 4px solid #027299; border-radius: 6px; background: #ffffff;">
-        <summary style="cursor: pointer; padding: 16px; font-size: 1.1em; color: #027299;"><strong>${d[`t${i}`]}</strong></summary>
+        <summary style="cursor: pointer; padding: 16px; font-size: 1.1em; color: #027299;"><strong>${formatTitleHTML(d[`t${i}`])}</strong></summary>
         <div style="padding: 0 16px 16px 16px;">
             ${contentHtml.replace(/\n/g, '\n            ')}
         </div>
@@ -304,7 +312,7 @@
                 for(let i=1; i<=count; i++) {
                     const contentHtml = generateFlexibleHTML(d[`c${i}`]);
                     itemsHtml += `    <li style="flex: 0 1 260px; border: 1px solid rgba(0, 159, 194, 0.2); border-radius: 8px; padding: 1.5em; background-color: rgba(0, 159, 194, 0.08);">
-        <p style="margin: 0 0 1em 0; text-align: center; color: #027299; font-size: 1.15em;"><strong>${d[`t${i}`]}</strong></p>
+        <p style="margin: 0 0 1em 0; text-align: center; color: #027299; font-size: 1.15em;"><strong>${formatTitleHTML(d[`t${i}`])}</strong></p>
         ${contentHtml.replace(/\n/g, '\n        ')}
     </li>\n`;
                 }
@@ -319,7 +327,7 @@
             const contentHtml = generateFlexibleHTML(d[`c${i}`]);
             cardsHtml += `    <div style="display: flex; flex-direction: column; border: 1px solid rgba(64, 78, 101, 0.15); border-top: 5px solid #009fc2; border-radius: 8px; background: #ffffff;">
         <div style="padding: 1.5em 1.5em 1em 1.5em; border-bottom: 1px solid rgba(64, 78, 101, 0.15);">
-            <${headingTag} style="margin: 0; color: #027299; font-size: 1.25em;">${d[`t${i}`]}</${headingTag}>
+            <${headingTag} style="margin: 0; color: #027299; font-size: 1.25em;">${formatTitleHTML(d[`t${i}`])}</${headingTag}>
         </div>
         <div style="padding: 1.5em; flex-grow: 1;">
             ${contentHtml.replace(/\n/g, '\n            ')}
@@ -427,6 +435,7 @@
             if (html) {
                 e.preventDefault();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
+                const isSingleLine = e.target.tagName === 'INPUT';
                 
                 function extractToHybridMarkdown(node) {
                     if (node.nodeType === 3) return node.textContent;
@@ -438,12 +447,13 @@
                         if (tag === 'a') {
                             const href = node.getAttribute('href');
                             if (href && !href.toLowerCase().startsWith('javascript:')) {
-                                // Add requested Canvas attributes to all parsed links
                                 return `<a class="inline_disabled" href="${href}" target="_blank" rel="noopener">${inner}</a>`;
                             }
                         }
-                        if (tag === 'b' || tag === 'strong') return `<strong>${inner}</strong>`;
-                        if (tag === 'i' || tag === 'em') return `<em>${inner}</em>`;
+                        
+                        // If it's a title field (INPUT), ignore bold/italic completely and just return inner text
+                        if (tag === 'b' || tag === 'strong') return isSingleLine ? inner : `<strong>${inner}</strong>`;
+                        if (tag === 'i' || tag === 'em') return isSingleLine ? inner : `<em>${inner}</em>`;
                         
                         if (tag === 'li') {
                             const parentTag = node.parentNode ? node.parentNode.tagName.toLowerCase() : '';
@@ -466,8 +476,12 @@
                 let cleanCode = extractToHybridMarkdown(doc.body).replace(/\n\s*\n/g, '\n').trim();
                 if (!cleanCode) cleanCode = e.clipboardData.getData('text/plain');
                 
-                // Scrub the Canvas LMS artifact immediately so the user doesn't even see it in the text box
                 cleanCode = cleanCode.replace(/\s*Links to an external site\.?/gi, '');
+                
+                // For title fields (inputs), strip block line-breaks generated from pasting rich text paragraphs
+                if (isSingleLine) {
+                    cleanCode = cleanCode.replace(/\n/g, ' ').replace(/\s{2,}/g, ' ');
+                }
                 
                 document.execCommand('insertText', false, cleanCode);
                 generateOutput();
