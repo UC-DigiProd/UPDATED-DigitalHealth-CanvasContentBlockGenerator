@@ -27,7 +27,13 @@
         }
         h1 { color: var(--primary); margin-top: 0; }
         .form-group { margin-bottom: 1.2rem; }
+        .count-group { background: #f0f7f9; padding: 1rem; border-radius: 6px; border-left: 4px solid var(--primary); margin-bottom: 2rem; }
+        .count-group input { width: 100px; font-weight: bold; }
+        .dynamic-item { padding-bottom: 1.5rem; margin-bottom: 1.5rem; border-bottom: 1px dashed #ddd; }
+        .dynamic-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        
         label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9em; }
+        .helper-text { display: block; font-size: 0.8em; color: #666; margin-top: -0.3rem; margin-bottom: 0.5rem; }
         input, select, textarea {
             width: 100%;
             padding: 0.75rem;
@@ -36,274 +42,272 @@
             box-sizing: border-box;
             font-family: inherit;
         }
-        textarea { resize: vertical; min-height: 80px; }
-        .list-input { min-height: 120px; white-space: pre; }
+        textarea { resize: vertical; min-height: 100px; }
         
-        button {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 1em;
-            transition: background 0.2s;
-        }
-        button:hover { background: #005f80; }
-        .grid-layout {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-        @media (max-width: 768px) {
-            .grid-layout { grid-template-columns: 1fr; }
-        }
-        .output-section h2 { font-size: 1.2em; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
-        #preview {
-            border: 1px dashed #ccc;
-            padding: 1rem;
-            border-radius: 8px;
-            background: white;
-            min-height: 100px;
-        }
-        #preview a { color: #009fc2; font-weight: bold; } /* Simple preview style for links */
+        .output-section { margin-top: 2rem; }
+        .output-section h2 { font-size: 1.2em; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
         #code-output {
             white-space: pre-wrap;
             font-family: monospace;
             background: #2d2d2d;
             color: #ccc;
-            padding: 1rem;
+            padding: 1.5rem;
             border-radius: 4px;
             font-size: 0.85em;
             overflow-x: auto;
-            height: 250px;
+            height: 350px;
         }
         .copy-btn {
-            background: #404e65;
-            margin-bottom: 0.5rem;
-            font-size: 0.8em;
+            background: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 0.85em;
             padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background 0.2s;
         }
+        .copy-btn:hover { background: #005f80; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>Content Block Generator</h1>
-    <p>Select a component and fill in the fields. <strong>You can paste rich text (with links) directly into the text boxes</strong>, and it will automatically convert to HTML.</p>
+    <p>Select a component, adjust properties, and copy the generated HTML. <strong>Rich text pasting is supported and will retain formatting and links.</strong></p>
 
     <div class="form-group">
         <label for="block-type">Select Content Block Type</label>
-        <select id="block-type">
-            </select>
+        <select id="block-type"></select>
     </div>
 
     <div id="dynamic-inputs">
         </div>
 
-    <div class="grid-layout">
-        <div class="output-section">
-            <h2>Visual Preview</h2>
-            <div id="preview"></div>
-        </div>
-        <div class="output-section">
-            <h2>HTML Output <button class="copy-btn" id="copy-btn">Copy to Clipboard</button></h2>
-            <textarea id="code-output" readonly></textarea>
-        </div>
+    <div class="output-section">
+        <h2>HTML Output <button class="copy-btn" id="copy-btn">Copy to Clipboard</button></h2>
+        <textarea id="code-output" readonly></textarea>
     </div>
 </div>
 
 <script>
+    // Hybrid Markdown Parser for Flexible Content
+    function generateFlexibleHTML(text) {
+        const blocks = text.split('\n').map(l => l.trim()).filter(l => l !== '');
+        let html = '';
+        let inList = false;
+        let listType = '';
+        let listItems = [];
+
+        const flushList = () => {
+            if (inList && listItems.length > 0) {
+                html += `<${listType} style="margin: 0 0 1em 0; padding-left: 24px; color: #404e65; line-height: 1.6;">\n`;
+                listItems.forEach((item, index) => {
+                    const style = (index === listItems.length - 1) ? 'color: #404e65; margin-bottom: 0;' : 'color: #404e65; margin-bottom: 12px;';
+                    html += `    <li style="${style}">${item}</li>\n`;
+                });
+                html += `</${listType}>\n`;
+                inList = false;
+                listItems = [];
+            }
+        };
+
+        blocks.forEach(block => {
+            const ulMatch = block.match(/^[-*]\s+(.*)/);
+            const olMatch = block.match(/^(\d+)\.\s+(.*)/);
+
+            if (ulMatch) {
+                if (inList && listType !== 'ul') flushList();
+                inList = true;
+                listType = 'ul';
+                listItems.push(ulMatch[1]);
+            } else if (olMatch) {
+                if (inList && listType !== 'ol') flushList();
+                inList = true;
+                listType = 'ol';
+                listItems.push(olMatch[2]);
+            } else {
+                flushList();
+                html += `<p style="color: #404e65; margin-top: 0; margin-bottom: 1em; line-height: 1.6;">${block}</p>\n`;
+            }
+        });
+        flushList();
+        
+        // Strip the bottom margin from the very last element to prevent container overflow spacing
+        let finalHtml = html.trim();
+        let lastTagOpen = finalHtml.lastIndexOf('<p');
+        let lastUlOpen = finalHtml.lastIndexOf('<ul');
+        let lastOlOpen = finalHtml.lastIndexOf('<ol');
+        let targetIndex = Math.max(lastTagOpen, lastUlOpen, lastOlOpen);
+        
+        if (targetIndex !== -1) {
+            let before = finalHtml.substring(0, targetIndex);
+            let after = finalHtml.substring(targetIndex);
+            if (after.startsWith('<p')) {
+                after = after.replace('margin-bottom: 1em;', 'margin-bottom: 0;');
+            } else {
+                after = after.replace('margin: 0 0 1em 0;', 'margin: 0;');
+            }
+            finalHtml = before + after;
+        }
+        return finalHtml;
+    }
+
     const templates = {
         calloutH4: {
             name: "Callout box (<h4> variation)",
+            isDynamic: false,
             fields: [
                 { id: "title", label: "Callout Title", default: "Important Note", type: "input" },
-                { id: "primary", label: "Primary Paragraph", default: "This is the primary text of the callout.", type: "textarea" },
-                { id: "secondary", label: "Secondary Paragraph", default: "This is secondary text, or leave blank to omit.", type: "textarea" }
+                { id: "p1", label: "Paragraph 1", default: "This is the primary text of the callout.", type: "textarea" },
+                { id: "p2", label: "Paragraph 2 (Optional)", default: "This is secondary text, or leave blank to omit.", type: "textarea" },
+                { id: "p3", label: "Paragraph 3 (Optional)", default: "", type: "textarea" }
             ],
-            render: (d) => `<div style="background-color: rgba(0, 159, 194, 0.08); border: 1px solid rgba(0, 159, 194, 0.2); border-radius: 8px; padding: 1.5em; margin: 1.5em 0;">
+            render: (d) => {
+                let p2Html = d.p2 ? `\n    <p style="color: #404e65; margin: 0 0 ${d.p3 ? '1em' : '0'}; line-height: 1.6;">${d.p2}</p>` : '';
+                let p3Html = d.p3 ? `\n    <p style="color: #404e65; margin: 0; line-height: 1.6;">${d.p3}</p>` : '';
+                let p1Style = (d.p2 || d.p3) ? "0 0 1em 0" : "0";
+                return `<div style="background-color: rgba(0, 159, 194, 0.08); border: 1px solid rgba(0, 159, 194, 0.2); border-radius: 8px; padding: 1.5em; margin: 1.5em 0;">
     <h4 style="margin-top: 0; margin-bottom: 0.5em; color: #027299; font-size: 1.25em;">${d.title}</h4>
-    <p style="color: #404e65; margin: 0 0 1em 0; line-height: 1.6;">${d.primary}</p>
-    ${d.secondary ? `<p style="color: #404e65; margin: 0; line-height: 1.6;">${d.secondary}</p>` : ''}
-</div>`
+    <p style="color: #404e65; margin: ${p1Style}; line-height: 1.6;">${d.p1}</p>${p2Html}${p3Html}
+</div>`;
+            }
         },
         calloutH3: {
             name: "Callout box (<h3> variation)",
+            isDynamic: false,
             fields: [
                 { id: "title", label: "Callout Title", default: "Major Notice", type: "input" },
-                { id: "primary", label: "Primary Paragraph", default: "Primary emphasis text.", type: "textarea" },
-                { id: "secondary", label: "Secondary Paragraph", default: "Secondary emphasis text.", type: "textarea" }
+                { id: "p1", label: "Paragraph 1", default: "Primary emphasis text.", type: "textarea" },
+                { id: "p2", label: "Paragraph 2 (Optional)", default: "Secondary emphasis text.", type: "textarea" },
+                { id: "p3", label: "Paragraph 3 (Optional)", default: "", type: "textarea" }
             ],
-            render: (d) => `<div style="background-color: rgba(0, 159, 194, 0.08); border: 1px solid rgba(0, 159, 194, 0.2); border-radius: 8px; padding: 1.5em; margin: 1.5em 0;">
+            render: (d) => {
+                let p2Html = d.p2 ? `\n    <p style="color: #404e65; margin: 0 0 ${d.p3 ? '1em' : '0'}; line-height: 1.6;">${d.p2}</p>` : '';
+                let p3Html = d.p3 ? `\n    <p style="color: #404e65; margin: 0; line-height: 1.6;">${d.p3}</p>` : '';
+                let p1Style = (d.p2 || d.p3) ? "0 0 1em 0" : "0";
+                return `<div style="background-color: rgba(0, 159, 194, 0.08); border: 1px solid rgba(0, 159, 194, 0.2); border-radius: 8px; padding: 1.5em; margin: 1.5em 0;">
     <h3 style="margin-top: 0; margin-bottom: 0.5em; color: #027299; font-size: 1.25em;">${d.title}</h3>
-    <p style="color: #404e65; margin: 0 0 1em 0; line-height: 1.6;">${d.primary}</p>
-    ${d.secondary ? `<p style="color: #404e65; margin: 0; line-height: 1.6;">${d.secondary}</p>` : ''}
-</div>`
+    <p style="color: #404e65; margin: ${p1Style}; line-height: 1.6;">${d.p1}</p>${p2Html}${p3Html}
+</div>`;
+            }
         },
         blockquote: {
             name: "Blockquote",
+            isDynamic: false,
             fields: [
                 { id: "quote", label: "Exact Quote Text", default: "This is a direct quote from a source.", type: "textarea" }
             ],
-            render: (d) => `<blockquote style="margin: 1.5em 0; padding: 1.2em 1.5em; border-left: 4px solid #009fc2; background-color: rgba(64, 78, 101, 0.03); border-radius: 0 8px 8px 0;">
-    <p style="margin: 0; color: #404e65; font-style: italic; line-height: 1.6;">${d.quote}</p>
-</blockquote>`
-        },
-        defOption1: {
-            name: "Definition box (Option 1: <dt> Semantic)",
-            fields: [
-                { id: "term", label: "Term", default: "Semantic HTML", type: "input" },
-                { id: "definition", label: "Definition", default: "The use of HTML markup to reinforce the semantics, or meaning, of the information.", type: "textarea" }
-            ],
-            render: (d) => `<dl style="border: 1px solid #027299; border-radius: 6px; overflow: hidden; margin: 1.5em 0; padding: 0; background-color: #ffffff; font-family: inherit;">
-    <dt style="background-color: #027299; padding: 12px 16px; margin: 0; color: #ffffff; font-size: 1.1em;">${d.term}</dt>
-    <dd style="padding: 16px; margin: 0; color: #404e65; line-height: 1.6;">${d.definition}</dd>
-</dl>`
-        },
-        defOption2: {
-            name: "Definition box (Option 2: ARIA Roles)",
-            fields: [
-                { id: "term", label: "Term", default: "ARIA", type: "input" },
-                { id: "definition", label: "Definition", default: "Accessible Rich Internet Applications is a set of roles and attributes.", type: "textarea" }
-            ],
-            render: (d) => `<div style="border: 1px solid #027299; border-radius: 6px; overflow: hidden; margin: 1.5rem 0; background-color: #ffffff; font-family: inherit;">
-    <div style="background-color: #027299; padding: 12px 16px;">
-        <p style="margin: 0; color: #ffffff;"><strong role="term">${d.term}</strong> is defined as:</p>
-    </div>
-    <div style="padding: 16px;" role="definition">
-        <p style="margin: 0; color: #404e65; line-height: 1.6;">${d.definition}</p>
-    </div>
-</div>`
+            render: (d) => {
+                const cleanQuote = d.quote.replace(/["“”]/g, '');
+                return `<blockquote style="margin: 1.5em 0; padding: 1.2em 1.5em; border-left: 4px solid #009fc2; background-color: rgba(64, 78, 101, 0.03); border-radius: 0 8px 8px 0;">
+    <p style="margin: 0; color: #404e65; font-style: italic; line-height: 1.6;">${cleanQuote}</p>
+</blockquote>`;
+            }
         },
         accordion: {
-            name: "Collapsible Accordion (2 Items)",
-            fields: [
-                { id: "t1", label: "Accordion 1 Title", default: "Section 1 Overview", type: "input" },
-                { id: "c1", label: "Accordion 1 Content", default: "Details about section 1.", type: "textarea" },
-                { id: "t2", label: "Accordion 2 Title", default: "Section 2 Features", type: "input" },
-                { id: "c2Intro", label: "Accordion 2 Intro Text", default: "Here are the features:", type: "textarea" },
-                { id: "c2List", label: "Accordion 2 List (One item per line)", default: "Feature A\nFeature B\nFeature C", type: "list" }
-            ],
-            render: (d) => {
-                const listItems = d.c2List.split('\n').map(i => i.trim()).filter(i => i);
-                let listHtml = listItems.map((item, idx) => 
-                    `<li style="${idx === listItems.length - 1 ? 'color: #404e65;' : 'margin-bottom: 8px; color: #404e65;'}">${item}</li>`
-                ).join('\n                ');
-
-                return `<div style="display: flex; flex-direction: column; gap: 12px; margin: 1.5em 0;">
-    <details style="border: 1px solid rgba(64, 78, 101, 0.15); border-left: 4px solid #027299; border-radius: 6px; background: #ffffff;">
-        <summary style="cursor: pointer; padding: 16px; font-size: 1.1em; color: #027299;"><strong>${d.t1}</strong></summary>
+            name: "Collapsible Accordion",
+            isDynamic: true,
+            defaultCount: 2,
+            getFields: (count) => {
+                let f = [];
+                for(let i=1; i<=count; i++) {
+                    f.push({ id: `t${i}`, label: `Accordion ${i} Title`, default: `Accordion Title ${i}`, type: "input" });
+                    f.push({ id: `c${i}`, label: `Accordion ${i} Content`, helper: `Press Enter for paragraphs. Start a line with <strong>-</strong> for bullets or <strong>1.</strong> for numbers.`, default: `Intro text for item ${i}.\n\n- Bullet 1\n- Bullet 2`, type: "textarea" });
+                }
+                return f;
+            },
+            render: (d, count) => {
+                let itemsHtml = '';
+                for(let i=1; i<=count; i++) {
+                    const contentHtml = generateFlexibleHTML(d[`c${i}`]);
+                    itemsHtml += `    <details style="border: 1px solid rgba(64, 78, 101, 0.15); border-left: 4px solid #027299; border-radius: 6px; background: #ffffff;">
+        <summary style="cursor: pointer; padding: 16px; font-size: 1.1em; color: #027299;"><strong>${d[`t${i}`]}</strong></summary>
         <div style="padding: 0 16px 16px 16px;">
-            <p style="margin: 0; color: #404e65; line-height: 1.6;">${d.c1}</p>
+            ${contentHtml.replace(/\n/g, '\n            ')}
         </div>
-    </details>
-    <details style="border: 1px solid rgba(64, 78, 101, 0.15); border-left: 4px solid #027299; border-radius: 6px; background: #ffffff;">
-        <summary style="cursor: pointer; padding: 16px; font-size: 1.1em; color: #027299;"><strong>${d.t2}</strong></summary>
-        <div style="padding: 0 16px 16px 16px;">
-            <p style="margin-top: 0; margin-bottom: 12px; color: #404e65; line-height: 1.6;">${d.c2Intro}</p>
-            <ul style="margin: 0; padding-left: 20px; color: #404e65; line-height: 1.6;">
-                ${listHtml}
-            </ul>
-        </div>
-    </details>
-</div>`;
+    </details>\n`;
+                }
+                return `<div style="display: flex; flex-direction: column; gap: 12px; margin: 1.5em 0;">\n${itemsHtml.trimEnd()}\n</div>`;
             }
         },
         gridH4: {
             name: "CSS Grid Cards (<h4> variation)",
-            fields: [
-                { id: "c1Title", label: "Card 1 Title", default: "Step 1: Preparation", type: "input" },
-                { id: "c1Intro", label: "Card 1 Intro", default: "Follow these steps:", type: "textarea" },
-                { id: "c1List", label: "Card 1 List (One item per line)", default: "Gather tools\nReview manual\nStart engine", type: "list" },
-                { id: "c2Title", label: "Card 2 Title", default: "Tools Required", type: "input" },
-                { id: "c2Intro", label: "Card 2 Intro", default: "Ensure you have:", type: "textarea" },
-                { id: "c2List", label: "Card 2 List (One item per line)", default: "Wrench\nScrewdriver\nGloves", type: "list" }
-            ],
-            render: (d) => buildGrid(d, "h4", "ol", "ul")
+            isDynamic: true,
+            defaultCount: 2,
+            getFields: (count) => {
+                let f = [];
+                for(let i=1; i<=count; i++) {
+                    f.push({ id: `t${i}`, label: `Card ${i} Title`, default: `Grid Card ${i}`, type: "input" });
+                    f.push({ id: `c${i}`, label: `Card ${i} Content`, helper: `Press Enter for paragraphs. Start a line with <strong>-</strong> for bullets or <strong>1.</strong> for numbers.`, default: `Intro text:\n\n- Item 1\n- Item 2`, type: "textarea" });
+                }
+                return f;
+            },
+            render: (d, count) => buildGridDynamic(d, count, "h4")
         },
         gridH3: {
             name: "CSS Grid Cards (<h3> variation)",
-            fields: [
-                { id: "c1Title", label: "Card 1 Title", default: "Phase 1", type: "input" },
-                { id: "c1Intro", label: "Card 1 Intro", default: "Objectives:", type: "textarea" },
-                { id: "c1List", label: "Card 1 List (One item per line)", default: "Research\nDesign\nBuild", type: "list" },
-                { id: "c2Title", label: "Card 2 Title", default: "Resources", type: "input" },
-                { id: "c2Intro", label: "Card 2 Intro", default: "Available items:", type: "textarea" },
-                { id: "c2List", label: "Card 2 List (One item per line)", default: "Servers\nDomains\nCodebase", type: "list" }
-            ],
-            render: (d) => buildGrid(d, "h3", "ol", "ul")
+            isDynamic: true,
+            defaultCount: 2,
+            getFields: (count) => {
+                let f = [];
+                for(let i=1; i<=count; i++) {
+                    f.push({ id: `t${i}`, label: `Card ${i} Title`, default: `Phase ${i}`, type: "input" });
+                    f.push({ id: `c${i}`, label: `Card ${i} Content`, helper: `Press Enter for paragraphs. Start a line with <strong>-</strong> for bullets or <strong>1.</strong> for numbers.`, default: `Intro text:\n\n- Item 1\n- Item 2`, type: "textarea" });
+                }
+                return f;
+            },
+            render: (d, count) => buildGridDynamic(d, count, "h3")
         },
         flexCards: {
-            name: "Flexbox List Cards (3 Cards)",
-            fields: [
-                { id: "c1Title", label: "Card 1 Title", default: "Feature One", type: "input" },
-                { id: "c1Desc", label: "Card 1 Description", default: "Description of the first feature.", type: "textarea" },
-                { id: "c2Title", label: "Card 2 Title", default: "Feature Two", type: "input" },
-                { id: "c2Desc", label: "Card 2 Description", default: "Description of the second feature.", type: "textarea" },
-                { id: "c3Title", label: "Card 3 Title", default: "Feature Three", type: "input" },
-                { id: "c3Desc", label: "Card 3 Description", default: "Description of the third feature.", type: "textarea" }
-            ],
-            render: (d) => `<ul style="display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin: 1.5em 0; padding: 0; list-style: none;">
-    <li style="flex: 0 1 260px; border: 1px solid rgba(0, 159, 194, 0.2); border-radius: 8px; padding: 1.5em; background-color: rgba(0, 159, 194, 0.08);">
-        <p style="margin: 0 0 0.5em; text-align: center; color: #027299; font-size: 1.15em;"><strong>${d.c1Title}</strong></p>
-        <p style="text-align: center; margin: 0; line-height: 1.5; color: #404e65;">${d.c1Desc}</p>
-    </li>
-    <li style="flex: 0 1 260px; border: 1px solid rgba(0, 159, 194, 0.2); border-radius: 8px; padding: 1.5em; background-color: rgba(0, 159, 194, 0.08);">
-        <p style="margin: 0 0 0.5em; text-align: center; color: #027299; font-size: 1.15em;"><strong>${d.c2Title}</strong></p>
-        <p style="text-align: center; margin: 0; line-height: 1.5; color: #404e65;">${d.c2Desc}</p>
-    </li>
-    <li style="flex: 0 1 260px; border: 1px solid rgba(0, 159, 194, 0.2); border-radius: 8px; padding: 1.5em; background-color: rgba(0, 159, 194, 0.08);">
-        <p style="margin: 0 0 0.5em; text-align: center; color: #027299; font-size: 1.15em;"><strong>${d.c3Title}</strong></p>
-        <p style="text-align: center; margin: 0; line-height: 1.5; color: #404e65;">${d.c3Desc}</p>
-    </li>
-</ul>`
+            name: "Flexbox List Cards",
+            isDynamic: true,
+            defaultCount: 3,
+            getFields: (count) => {
+                let f = [];
+                for(let i=1; i<=count; i++) {
+                    f.push({ id: `t${i}`, label: `Card ${i} Title`, default: `Feature ${i}`, type: "input" });
+                    f.push({ id: `c${i}`, label: `Card ${i} Content`, helper: `Press Enter for paragraphs. Start a line with <strong>-</strong> for bullets or <strong>1.</strong> for numbers.`, default: `Description for feature ${i}.`, type: "textarea" });
+                }
+                return f;
+            },
+            render: (d, count) => {
+                let itemsHtml = '';
+                for(let i=1; i<=count; i++) {
+                    const contentHtml = generateFlexibleHTML(d[`c${i}`]);
+                    itemsHtml += `    <li style="flex: 0 1 260px; border: 1px solid rgba(0, 159, 194, 0.2); border-radius: 8px; padding: 1.5em; background-color: rgba(0, 159, 194, 0.08);">
+        <p style="margin: 0 0 1em 0; text-align: center; color: #027299; font-size: 1.15em;"><strong>${d[`t${i}`]}</strong></p>
+        ${contentHtml.replace(/\n/g, '\n        ')}
+    </li>\n`;
+                }
+                return `<ul style="display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin: 1.5em 0; padding: 0; list-style: none;">\n${itemsHtml.trimEnd()}\n</ul>`;
+            }
         }
     };
 
-    function buildGrid(d, headingTag, listTag1, listTag2) {
-        const c1Items = d.c1List.split('\n').map(i => i.trim()).filter(i => i);
-        const c2Items = d.c2List.split('\n').map(i => i.trim()).filter(i => i);
-        
-        const mapList = (items) => items.map((item, idx) => 
-            `<li style="color: #404e65; ${idx === items.length - 1 ? 'margin-bottom: 0;' : 'margin-bottom: 12px;'}">${item}</li>`
-        ).join('\n                ');
-
-        return `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin: 1.5em 0; align-items: stretch;">
-    <div style="display: flex; flex-direction: column; border: 1px solid rgba(64, 78, 101, 0.15); border-top: 5px solid #009fc2; border-radius: 8px; background: #ffffff;">
+    function buildGridDynamic(d, count, headingTag) {
+        let cardsHtml = '';
+        for(let i=1; i<=count; i++) {
+            const contentHtml = generateFlexibleHTML(d[`c${i}`]);
+            cardsHtml += `    <div style="display: flex; flex-direction: column; border: 1px solid rgba(64, 78, 101, 0.15); border-top: 5px solid #009fc2; border-radius: 8px; background: #ffffff;">
         <div style="padding: 1.5em 1.5em 1em 1.5em; border-bottom: 1px solid rgba(64, 78, 101, 0.15);">
-            <${headingTag} style="margin: 0; color: #027299; font-size: 1.25em;">${d.c1Title}</${headingTag}>
+            <${headingTag} style="margin: 0; color: #027299; font-size: 1.25em;">${d[`t${i}`]}</${headingTag}>
         </div>
         <div style="padding: 1.5em; flex-grow: 1;">
-            <p style="color: #404e65; margin-top: 0; margin-bottom: 1em; line-height: 1.6;">${d.c1Intro}</p>
-            <${listTag1} style="color: #404e65; margin: 0; padding-left: 24px; line-height: 1.6;">
-                ${mapList(c1Items)}
-            </${listTag1}>
+            ${contentHtml.replace(/\n/g, '\n            ')}
         </div>
-    </div>
-    <div style="display: flex; flex-direction: column; border: 1px solid rgba(64, 78, 101, 0.15); border-top: 5px solid #009fc2; border-radius: 8px; background: #ffffff;">
-        <div style="padding: 1.5em 1.5em 1em 1.5em; border-bottom: 1px solid rgba(64, 78, 101, 0.15);">
-            <${headingTag} style="margin: 0; color: #027299; font-size: 1.25em;">${d.c2Title}</${headingTag}>
-        </div>
-        <div style="padding: 1.5em; flex-grow: 1;">
-            <p style="color: #404e65; margin-top: 0; margin-bottom: 1em; line-height: 1.6;">${d.c2Intro}</p>
-            <${listTag2} style="color: #404e65; margin: 0; padding-left: 24px; line-height: 1.6;">
-                ${mapList(c2Items)}
-            </${listTag2}>
-        </div>
-    </div>
-</div>`;
+    </div>\n`;
+        }
+        return `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin: 1.5em 0; align-items: stretch;">\n${cardsHtml.trimEnd()}\n</div>`;
     }
 
     const selectEl = document.getElementById('block-type');
     const inputsEl = document.getElementById('dynamic-inputs');
-    const previewEl = document.getElementById('preview');
     const codeOutputEl = document.getElementById('code-output');
     const btnCopy = document.getElementById('copy-btn');
+    let currentDynamicCount = 2;
 
-    // Populate Select Dropdown
     for (const key in templates) {
         const opt = document.createElement('option');
         opt.value = key;
@@ -311,48 +315,82 @@
         selectEl.appendChild(opt);
     }
 
-    // Render Form Inputs based on Selection
     function renderInputs() {
         const key = selectEl.value;
         const config = templates[key];
         inputsEl.innerHTML = '';
         
-        config.fields.forEach(field => {
-            const wrap = document.createElement('div');
-            wrap.className = 'form-group';
-            
-            let inputHtml = '';
-            if (field.type === 'textarea') {
-                inputHtml = `<textarea id="input-${field.id}">${field.default}</textarea>`;
-            } else if (field.type === 'list') {
-                inputHtml = `<textarea id="input-${field.id}" class="list-input" placeholder="Enter items here, one per line">${field.default}</textarea>`;
-            } else {
-                inputHtml = `<input type="text" id="input-${field.id}" value="${field.default}" />`;
-            }
-
-            wrap.innerHTML = `
-                <label for="input-${field.id}">${field.label}</label>
-                ${inputHtml}
+        let fieldsToRender = [];
+        
+        if (config.isDynamic) {
+            const countWrap = document.createElement('div');
+            countWrap.className = 'form-group count-group';
+            countWrap.innerHTML = `
+                <label for="dynamic-count">Number of Items</label>
+                <input type="number" id="dynamic-count" min="1" max="20" value="${currentDynamicCount}" />
             `;
-            inputsEl.appendChild(wrap);
-        });
+            inputsEl.appendChild(countWrap);
+            
+            countWrap.querySelector('#dynamic-count').addEventListener('input', (e) => {
+                currentDynamicCount = parseInt(e.target.value) || 1;
+                renderDynamicSubFields(); 
+                generateOutput();
+            });
+            fieldsToRender = config.getFields(currentDynamicCount);
+        } else {
+            fieldsToRender = config.fields;
+        }
+        
+        const subFieldsContainer = document.createElement('div');
+        subFieldsContainer.id = 'dynamic-sub-fields';
+        inputsEl.appendChild(subFieldsContainer);
+        
+        function renderDynamicSubFields() {
+            subFieldsContainer.innerHTML = '';
+            const fields = config.isDynamic ? config.getFields(currentDynamicCount) : config.fields;
+            
+            let currentItemWrap = null;
+
+            fields.forEach((field, index) => {
+                // Group title/content into neat blocks for dynamic sets
+                if (config.isDynamic && field.id.startsWith('t')) {
+                    currentItemWrap = document.createElement('div');
+                    currentItemWrap.className = 'dynamic-item';
+                    subFieldsContainer.appendChild(currentItemWrap);
+                }
+
+                const wrap = document.createElement('div');
+                wrap.className = 'form-group';
+                
+                const helperHtml = field.helper ? `<span class="helper-text">${field.helper}</span>` : '';
+                const inputHtml = field.type === 'textarea' 
+                    ? `<textarea id="input-${field.id}">${field.default}</textarea>`
+                    : `<input type="text" id="input-${field.id}" value="${field.default}" />`;
+
+                wrap.innerHTML = `<label for="input-${field.id}">${field.label}</label>${helperHtml}${inputHtml}`;
+                
+                if (currentItemWrap) currentItemWrap.appendChild(wrap);
+                else subFieldsContainer.appendChild(wrap);
+            });
+        }
+        renderDynamicSubFields();
     }
 
-    // Generate HTML Output
     function generateOutput() {
         const key = selectEl.value;
         const config = templates[key];
         const data = {};
-        config.fields.forEach(f => {
-            data[f.id] = document.getElementById(`input-${f.id}`).value;
+        const fields = config.isDynamic ? config.getFields(currentDynamicCount) : config.fields;
+        
+        fields.forEach(f => {
+            const el = document.getElementById(`input-${f.id}`);
+            if(el) data[f.id] = el.value;
         });
         
-        const html = config.render(data);
-        previewEl.innerHTML = html;
-        codeOutputEl.value = html;
+        codeOutputEl.value = config.render(data, currentDynamicCount);
     }
 
-    // Smart Paste Interceptor for Rich Text
+    // Hybrid Markdown Paste Interceptor
     document.addEventListener('paste', function(e) {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
             const html = e.clipboardData.getData('text/html');
@@ -360,52 +398,55 @@
                 e.preventDefault();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
                 
-                function extractRichText(node) {
-                    if (node.nodeType === 3) return node.textContent; // Text node
+                function extractToHybridMarkdown(node) {
+                    if (node.nodeType === 3) return node.textContent;
                     if (node.nodeType === 1) {
                         const tag = node.tagName.toLowerCase();
                         let inner = '';
-                        for (let child of node.childNodes) inner += extractRichText(child);
+                        for (let child of node.childNodes) inner += extractToHybridMarkdown(child);
                         
                         if (tag === 'a') {
                             const href = node.getAttribute('href');
-                            if (href && !href.toLowerCase().startsWith('javascript:')) {
-                                return `<a href="${href}">${inner}</a>`;
-                            }
+                            if (href && !href.toLowerCase().startsWith('javascript:')) return `<a href="${href}">${inner}</a>`;
                         }
                         if (tag === 'b' || tag === 'strong') return `<strong>${inner}</strong>`;
                         if (tag === 'i' || tag === 'em') return `<em>${inner}</em>`;
                         
-                        // Handle block elements to ensure spacing is preserved
-                        if (['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tag)) return inner + '\\n\\n';
-                        if (tag === 'br' || tag === 'li') return inner + '\\n';
+                        if (tag === 'li') {
+                            const parentTag = node.parentNode ? node.parentNode.tagName.toLowerCase() : '';
+                            if (parentTag === 'ol') {
+                                let idx = Array.prototype.indexOf.call(node.parentNode.children, node) + 1;
+                                return `${idx}. ${inner.trim()}\n`;
+                            } else {
+                                return `- ${inner.trim()}\n`;
+                            }
+                        }
+                        if (tag === 'ul' || tag === 'ol') return inner + '\n';
+                        if (['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tag)) return inner.trim() + '\n';
+                        if (tag === 'br') return '\n';
                         
                         return inner;
                     }
                     return '';
                 }
                 
-                let cleanCode = extractRichText(doc.body).replace(/\\n\\s*\\n/g, '\\n\\n').trim();
+                let cleanCode = extractToHybridMarkdown(doc.body).replace(/\n\s*\n/g, '\n').trim();
+                if (!cleanCode) cleanCode = e.clipboardData.getData('text/plain');
                 
-                // Fallback to plain text if HTML was completely stripped of readable content
-                if (!cleanCode) {
-                    cleanCode = e.clipboardData.getData('text/plain');
-                }
-                
-                // Safely insert the converted HTML tags at the cursor position
                 document.execCommand('insertText', false, cleanCode);
                 generateOutput();
             }
         }
     });
 
-    // Event Listeners
     selectEl.addEventListener('change', () => {
+        const config = templates[selectEl.value];
+        if (config.isDynamic) currentDynamicCount = config.defaultCount;
         renderInputs();
         generateOutput();
     });
     
-    inputsEl.addEventListener('input', generateOutput); // Live preview!
+    inputsEl.addEventListener('input', generateOutput);
     
     btnCopy.addEventListener('click', () => {
         codeOutputEl.select();
@@ -415,10 +456,11 @@
         setTimeout(() => btnCopy.textContent = originalText, 2000);
     });
 
-    // Init
     renderInputs();
     generateOutput();
 
 </script>
 </body>
 </html>
+
+```
