@@ -83,7 +83,8 @@
     </div>
 
     <div id="dynamic-inputs">
-        </div>
+        <!-- Inputs injected here -->
+    </div>
 
     <div class="output-section">
         <h2>HTML Output <button class="copy-btn" id="copy-btn">Copy to Clipboard</button></h2>
@@ -217,9 +218,9 @@
                 const defHtml = generateFlexibleHTML(d.definition);
                 
                 let introHtml = d.intro
-                    .replace(/\*\*(.*?)\*\*/g, '<strong role="term">$1</strong>') // Markdown bold to term role
-                    .replace(/<strong>/g, '<strong role="term">') // Rich text pasted bold to term role
-                    .replace(/<a /g, '<a style="color: #ffffff; text-decoration: underline;" ') // Ensure links are white on the blue background
+                    .replace(/\*\*(.*?)\*\*/g, '<strong role="term">$1</strong>')
+                    .replace(/<strong>/g, '<strong role="term">')
+                    .replace(/<a /g, '<a style="color: #ffffff; text-decoration: underline;" ')
                     .replace(/\n/g, '<br>');
 
                 return `<div style="border: 1px solid #027299; border-radius: 6px; overflow: hidden; margin: 1.5rem 0; background-color: #ffffff; font-family: inherit;">
@@ -409,7 +410,11 @@
         
         fields.forEach(f => {
             const el = document.getElementById(`input-${f.id}`);
-            if(el) data[f.id] = el.value;
+            if(el) {
+                // Strip the "Links to an external site." text globally whenever calculating output
+                let cleanedValue = el.value.replace(/\s*Links to an external site\.?/gi, '');
+                data[f.id] = cleanedValue;
+            }
         });
         
         codeOutputEl.value = config.render(data, currentDynamicCount);
@@ -432,7 +437,10 @@
                         
                         if (tag === 'a') {
                             const href = node.getAttribute('href');
-                            if (href && !href.toLowerCase().startsWith('javascript:')) return `<a href="${href}">${inner}</a>`;
+                            if (href && !href.toLowerCase().startsWith('javascript:')) {
+                                // Add requested Canvas attributes to all parsed links
+                                return `<a class="inline_disabled" href="${href}" target="_blank" rel="noopener">${inner}</a>`;
+                            }
                         }
                         if (tag === 'b' || tag === 'strong') return `<strong>${inner}</strong>`;
                         if (tag === 'i' || tag === 'em') return `<em>${inner}</em>`;
@@ -457,6 +465,9 @@
                 
                 let cleanCode = extractToHybridMarkdown(doc.body).replace(/\n\s*\n/g, '\n').trim();
                 if (!cleanCode) cleanCode = e.clipboardData.getData('text/plain');
+                
+                // Scrub the Canvas LMS artifact immediately so the user doesn't even see it in the text box
+                cleanCode = cleanCode.replace(/\s*Links to an external site\.?/gi, '');
                 
                 document.execCommand('insertText', false, cleanCode);
                 generateOutput();
