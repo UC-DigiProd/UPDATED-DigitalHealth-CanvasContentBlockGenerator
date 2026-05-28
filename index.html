@@ -210,14 +210,21 @@
             name: "Definition box",
             isDynamic: false,
             fields: [
-                { id: "term", label: "Term / Topic", default: "Accessible Rich Internet Applications (ARIA)", type: "input" },
-                { id: "definition", label: "Definition", helper: "Press Enter for paragraphs. Start a line with - for bullets.", default: "A set of roles and attributes that define ways to make web content and applications more accessible.", type: "textarea" }
+                { id: "intro", label: "Introductory Text & Term", helper: "Type your sentence and wrap the term in **asterisks** (e.g., The WHO defines **digital health** as:). Rich text pasting with links is supported.", default: "**Accessible Rich Internet Applications (ARIA)** is defined as:", type: "textarea" },
+                { id: "definition", label: "Definition Content", helper: "Press Enter for paragraphs. Start a line with - for bullets.", default: "A set of roles and attributes that define ways to make web content and applications more accessible.", type: "textarea" }
             ],
             render: (d) => {
                 const defHtml = generateFlexibleHTML(d.definition);
+                
+                let introHtml = d.intro
+                    .replace(/\*\*(.*?)\*\*/g, '<strong role="term">$1</strong>') // Markdown bold to term role
+                    .replace(/<strong>/g, '<strong role="term">') // Rich text pasted bold to term role
+                    .replace(/<a /g, '<a style="color: #ffffff; text-decoration: underline;" ') // Ensure links are white on the blue background
+                    .replace(/\n/g, '<br>');
+
                 return `<div style="border: 1px solid #027299; border-radius: 6px; overflow: hidden; margin: 1.5rem 0; background-color: #ffffff; font-family: inherit;">
     <div style="background-color: #027299; padding: 12px 16px;">
-        <p style="margin: 0; color: #ffffff;"><strong role="term">${d.term}</strong> is defined as:</p>
+        <p style="margin: 0; color: #ffffff;">${introHtml}</p>
     </div>
     <div style="padding: 16px;" role="definition">
         ${defHtml.replace(/\n/g, '\n        ')}
