@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Health Micro ONLY - Content block generator</title>
+    <title>Digital Health Micro ONLY: Content block generator</title>
     <style>
         :root {
             --primary: #027299;
@@ -76,8 +76,8 @@
 <body>
 
 <div class="container">
-    <h1>Digital Health Micro ONLY - Content block generator</h1>
-    <p class="last-updated">Last updated: May 29, 2026 @ 10:40am by Hollie Herne</p>
+    <h1>Digital Health Micro ONLY: Content block generator</h1>
+    <p class="last-updated">Last updated: May 29, 2026 @ 10:50am by Hollie Herne</p>
     <p>Select a component, adjust properties, and copy the generated HTML. <strong>Rich text pasting is supported and will retain formatting and links.</strong></p>
 
     <div class="form-group">
@@ -86,11 +86,10 @@
     </div>
 
     <div id="dynamic-inputs">
-        <!-- Inputs injected here -->
-    </div>
+        </div>
 
     <div class="output-section">
-        <h2>HTML output <button class="copy-btn" id="copy-btn">Copy to Clipboard</button></h2>
+        <h2>HTML output <button class="copy-btn" id="copy-btn">Copy to clipboard</button></h2>
         <textarea id="code-output" readonly></textarea>
     </div>
 </div>
@@ -317,8 +316,9 @@
                 for(let i=1; i<=count; i++) {
                     // Pass 'center' alignment explicitly for Flexbox Cards
                     const contentHtml = generateFlexibleHTML(d[`c${i}`], 'center');
-                    itemsHtml += `    <li style="flex: 0 1 260px; border: 1px solid rgba(0, 159, 194, 0.2); border-radius: 8px; padding: 1.5em; background-color: rgba(0, 159, 194, 0.08);">
-        <p style="margin: 0 0 1em 0; text-align: center; color: #027299; font-size: 1.15em;"><strong>${formatTitleHTML(d[`t${i}`])}</strong></p>
+                    // Adjusted padding (1.25em) and bottom margin on the title paragraph (0.5em)
+                    itemsHtml += `    <li style="flex: 0 1 260px; border: 1px solid rgba(0, 159, 194, 0.2); border-radius: 8px; padding: 1.25em; background-color: rgba(0, 159, 194, 0.08);">
+        <p style="margin: 0 0 0.5em 0; text-align: center; color: #027299; font-size: 1.15em;"><strong>${formatTitleHTML(d[`t${i}`])}</strong></p>
         ${contentHtml.replace(/\n/g, '\n        ')}
     </li>\n`;
                 }
