@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Health ONLY - Content block generator</title>
+    <title>Digital Health Micro ONLY - Content block generator</title>
     <style>
         :root {
             --primary: #027299;
@@ -25,7 +25,9 @@
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
-        h1 { color: var(--primary); margin-top: 0; }
+        h1 { color: var(--primary); margin-top: 0; margin-bottom: 0.2rem; line-height: 1.2; }
+        .last-updated { font-size: 0.85em; color: #666; margin-top: 0; margin-bottom: 1.5rem; font-style: italic; }
+        
         .form-group { margin-bottom: 1.2rem; }
         .count-group { background: #f0f7f9; padding: 1rem; border-radius: 6px; border-left: 4px solid var(--primary); margin-bottom: 2rem; }
         .count-group input { width: 100px; font-weight: bold; }
@@ -74,7 +76,8 @@
 <body>
 
 <div class="container">
-    <h1>Digital Health ONLY - Content block generator</h1>
+    <h1>Digital Health Micro ONLY - Content block generator</h1>
+    <p class="last-updated">Last updated: May 29, 2026 @ 10:40am by Hollie Herne</p>
     <p>Select a component, adjust properties, and copy the generated HTML. <strong>Rich text pasting is supported and will retain formatting and links.</strong></p>
 
     <div class="form-group">
@@ -83,17 +86,18 @@
     </div>
 
     <div id="dynamic-inputs">
-        </div>
+        <!-- Inputs injected here -->
+    </div>
 
     <div class="output-section">
-        <h2>HTML Output <button class="copy-btn" id="copy-btn">Copy to clipboard</button></h2>
+        <h2>HTML output <button class="copy-btn" id="copy-btn">Copy to Clipboard</button></h2>
         <textarea id="code-output" readonly></textarea>
     </div>
 </div>
 
 <script>
     // Hybrid Markdown Parser for Flexible Content
-    function generateFlexibleHTML(text) {
+    function generateFlexibleHTML(text, align = 'left') {
         if (!text) return '';
         const blocks = text.split('\n').map(l => l.trim()).filter(l => l !== '');
         let html = '';
@@ -130,7 +134,8 @@
                 listItems.push(olMatch[2]);
             } else {
                 flushList();
-                html += `<p style="color: #404e65; margin-top: 0; margin-bottom: 1em; line-height: 1.6;">${block}</p>\n`;
+                const alignStyle = align === 'center' ? 'text-align: center; ' : '';
+                html += `<p style="${alignStyle}color: #404e65; margin-top: 0; margin-bottom: 1em; line-height: 1.6;">${block}</p>\n`;
             }
         });
         flushList();
@@ -310,7 +315,8 @@
             render: (d, count) => {
                 let itemsHtml = '';
                 for(let i=1; i<=count; i++) {
-                    const contentHtml = generateFlexibleHTML(d[`c${i}`]);
+                    // Pass 'center' alignment explicitly for Flexbox Cards
+                    const contentHtml = generateFlexibleHTML(d[`c${i}`], 'center');
                     itemsHtml += `    <li style="flex: 0 1 260px; border: 1px solid rgba(0, 159, 194, 0.2); border-radius: 8px; padding: 1.5em; background-color: rgba(0, 159, 194, 0.08);">
         <p style="margin: 0 0 1em 0; text-align: center; color: #027299; font-size: 1.15em;"><strong>${formatTitleHTML(d[`t${i}`])}</strong></p>
         ${contentHtml.replace(/\n/g, '\n        ')}
